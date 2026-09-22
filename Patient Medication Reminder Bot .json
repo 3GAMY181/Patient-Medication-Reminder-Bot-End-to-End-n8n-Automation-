@@ -1,0 +1,432 @@
+{
+  "name": "Patient Medication Reminder Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        928,
+        -128
+      ],
+      "id": "6c336aeb-3c93-49c5-986a-e1c57eea0182",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "medication_schedule"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        -128
+      ],
+      "id": "a9f2c54c-1a25-4db0-9e5e-80862869d96c",
+      "name": "Get many rows",
+      "credentials": {
+        "supabaseApi": {
+          "id": "XzBJDx2SFlbtPVtO",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "patients",
+        "filterType": "={{ $json.patient_id }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        -128
+      ],
+      "id": "a2b2313f-15db-4bbc-a2cf-bebb296116ed",
+      "name": "Get many rows1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "XzBJDx2SFlbtPVtO",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_chat_id }}",
+        "text": "=🚨 <b>تذكير بموعد الدواء</b>\n\nمرحباً <b>{{ $json.patient_name }}</b>،\nحان وقت تناول الدواء: <b>{{ $('Get many rows').item.json.medication_name }}</b>\nالجرعة: <i>{{ $('Get many rows').item.json.dosage }}</i>\n\nهل قمت بتناوله؟",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "تم تناول الدواء ✅",
+                    "additionalFields": {
+                      "callback_data": "TAKEN"
+                    }
+                  },
+                  {
+                    "text": "تأجيل 10 دقائق ⏰",
+                    "additionalFields": {
+                      "callback_data": "SNOOZE"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        -128
+      ],
+      "id": "621271c1-4b0a-4eaa-b7c7-fb728c6a7cad",
+      "name": "Send a text message",
+      "webhookId": "1713ec97-f6a2-4180-8cd2-d7f77a85a8ac",
+      "credentials": {
+        "telegramApi": {
+          "id": "hvk2EHNNJ9GJLvfE",
+          "name": "Reminder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        832,
+        192
+      ],
+      "id": "207ac3bd-63ab-4f69-9136-4ec7c9c93cc4",
+      "name": "Telegram Trigger",
+      "webhookId": "a92e93c2-a0a0-401a-ada8-320fc8ca60aa",
+      "credentials": {
+        "telegramApi": {
+          "id": "hvk2EHNNJ9GJLvfE",
+          "name": "Reminder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "72a6e9fd-eb87-4eb2-94fc-5266644bc1fe",
+              "leftValue": "={{ $json.callback_query.data }}",
+              "rightValue": "TAKEN",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "a82b1f41-141e-456d-ae98-49aaeb07bba2",
+              "leftValue": "={{ $json.callback_query.data }}",
+              "rightValue": "=SNOOZE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1056,
+        192
+      ],
+      "id": "00f317ca-027b-4966-9782-48533bac330f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "tableId": "reminder_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "Taken"
+            },
+            {
+              "fieldId": "patient_id",
+              "fieldValue": "fc9ac73d-8635-4322-8599-09c7003adee9"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        96
+      ],
+      "id": "a1af749d-e930-46e3-89fe-399afd7623e5",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "XzBJDx2SFlbtPVtO",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.callback_query.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1888,
+        176
+      ],
+      "id": "b4da4dc7-ebcb-499a-a16e-4194f67cdb83",
+      "name": "Send a text message1",
+      "webhookId": "5a784d4f-bd95-497b-819c-e13cb6f7454b",
+      "credentials": {
+        "telegramApi": {
+          "id": "hvk2EHNNJ9GJLvfE",
+          "name": "Reminder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.callback_query.data }}",
+        "options": {
+          "systemMessage": "=You are a smart, friendly, and caring medical assistant bot designed to track medication schedules. \nCRITICAL RULE: Always reply to the patient exclusively in Arabic (العربية), regardless of the input language.\n\nThere are two primary interaction states:\n1. If the patient's interaction is (TAKEN) - meaning they took their medication:\n- Goal of the reply: Encourage them, acknowledge completion, and provide health support.\n- Tone: Positive, warm, and motivating in Arabic (e.g., praising their commitment).\n- Example: \"عاش جداً يا بطل! 🟢 تم تسجيل جرعتك بنجاح. التزامك بمواعيدك هو خطوتك الأهم نحو التعافي التام.\"\n\n2. If the patient's interaction is (SNOOZE) - meaning they requested to postpone the dose:\n- Goal of the reply: Gently remind them of the importance of not delaying too long and let them know they will be reminded shortly.\n- Tone: Understanding, calm, and non-judgmental in Arabic.\n- Example: \"لا تقلق، لقد قمنا بتأجيل التذكير لمدة 10 دقائق ⏰. حاول ألا تأخذ وقتاً أطول حتى لا تنسى الجرعة.\"\n\nFormulate a concise, direct, and engaging Telegram-friendly reply in Arabic."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1504,
+        176
+      ],
+      "id": "18dff95f-7267-4760-b02f-5b7e0152dfe8",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1504,
+        416
+      ],
+      "id": "e7d943c2-c147-4f63-be70-f802073b5f0b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "reminder_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "SNOOZE"
+            },
+            {
+              "fieldId": "patient_id",
+              "fieldValue": "fc9ac73d-8635-4322-8599-09c7003adee9"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        288
+      ],
+      "id": "75500a19-0fb4-42cc-8580-1297c439b989",
+      "name": "Create a row1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "XzBJDx2SFlbtPVtO",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4bc26239-938b-4e36-bf12-c40f7a71f179",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "af7fd79cd38a945a32c837b2d0248fd0f01e8fee01f35f0e2b9c84c289382993"
+  },
+  "nodeGroups": [],
+  "id": "Vo31yGBoVk2PwuCx",
+  "tags": []
+}
